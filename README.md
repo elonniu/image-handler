@@ -19,9 +19,10 @@
 - https://aws.amazon.com/lambda/pricing/
 
 # 3. How to get cost effective / high performance?
+- optimize the bootstrap time for cold start
 - Use the right memory size
 - Use the right timeout
-- Use the right concurrency
+- Use the right provisioned concurrency
 - Use the right trigger settings
 - Use the right language
 - Use the right library
