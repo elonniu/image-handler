@@ -81,6 +81,7 @@ curl --location 'https://{your-api-url}' \
 - Native support for tracing: X-Ray
 - Native support for security: IAM, KMS, VPC, etc.
 - Native support for versioning: version control
+- Native support for ESM settings: batch size, retry, etc.
 
 # 4. How to compute the cost?
 - https://aws.amazon.com/lambda/pricing/
