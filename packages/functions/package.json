@@ -1,5 +1,5 @@
 {
-  "name": "@image-handle/functions",
+  "name": "@image-handler/functions",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
     "vitest": "^0.32.0"
   },
   "dependencies": {
-    "@image-handle/core": "workspace:^",
+    "@image-handler/core": "workspace:^",
     "aws-sdk": "^2.1392.0"
   }
 }

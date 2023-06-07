@@ -4,7 +4,7 @@ import { API } from "./stacks/MyStack";
 export default {
   config(_input) {
     return {
-      name: "image-handle",
+      name: "image-handler",
       region: "ap-southeast-1",
     };
   },

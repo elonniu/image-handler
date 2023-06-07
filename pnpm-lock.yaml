@@ -42,7 +42,7 @@ importers:
 
   packages/functions:
     dependencies:
-      '@image-handle/core':
+      '@image-handler/core':
         specifier: workspace:^
         version: link:../core
       aws-sdk:

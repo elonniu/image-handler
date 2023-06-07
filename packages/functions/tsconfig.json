@@ -4,7 +4,7 @@
     "module": "esnext",
     "baseUrl": ".",
     "paths": {
-      "@image-handle/core/*": ["../core/src/*"]
+      "@image-handler/core/*": ["../core/src/*"]
     }
   }
 }

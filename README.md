@@ -1,6 +1,73 @@
 # Image Handler
 
-## 1. What are the benefits of using serverless to process images?
+## 1. What is this?
+
+This is a demo for image processing using AWS Lambda.
+
+## 2. How to use it?
+
+### 2.1 Install the dependencies
+
+```bash
+npm install
+```
+
+### 2.2 Deploy the stack
+
+```bash
+npm run deploy --stage <stage> --region <region>
+```
+
+### 2.3 Get API Gateway URL from the output
+
+```bash
+Deployed:
+API
+ApiEndpoint: https://{your-api-url}
+```
+
+### 2.4 Test the API Gateway URL
+
+### 2.4.1 Sync
+
+```bash
+curl --location 'https://{your-api-url}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "InvocationType": "RequestResponse",
+    "Url": "https://{your-image-url}",
+    "Width": 300,
+    "Height": 300
+}'
+```
+
+### 2.4.2 Async
+
+```bash
+curl --location 'https://{your-api-url}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "InvocationType": "Event",
+    "Url": "https://{your-image-url}",
+    "Width": 300,
+    "Height": 300
+}'
+```
+
+### 2.4.3 Queue
+
+```bash
+curl --location 'https://{your-api-url}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "InvocationType": "Queue",
+    "Url": "https://{your-image-url}",
+    "Width": 300,
+    "Height": 300
+}'
+```
+
+## 3. What are the benefits of using serverless to process images?
 - Pay as you go: only pay for the time your code is running
 - No server management: no need to worry about the infrastructure
 - No idle time: no need to worry about the idle time
@@ -15,10 +82,10 @@
 - Native support for security: IAM, KMS, VPC, etc.
 - Native support for versioning: version control
 
-# 2. How to compute the cost?
+# 4. How to compute the cost?
 - https://aws.amazon.com/lambda/pricing/
 
-# 3. How to get cost effective / high performance?
+# 5. How to get cost effective / high performance?
 - Optimize the bootstrap time for cold start
 - Use the right memory size
 - Use the right timeout
