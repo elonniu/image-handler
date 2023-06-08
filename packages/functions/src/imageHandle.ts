@@ -51,41 +51,55 @@ export const compress = async (url: string, Key: string, Width: int, Height: int
 
     // record getimage latency
     const startTime = new Date().getTime();
-    const data = await getImage(url);
+    const originalImage = await getImage(url);
     const endTime = new Date().getTime();
 
     const downloadImageLatencyMS = endTime - startTime;
 
     // get response.data size in mb
-    const beforeByteLength = data.byteLength;
+    const originalByteLength = originalImage.byteLength;
     //record compress latency
     const startTime2 = new Date().getTime();
-    const compress = await compressImage(data, Width, Height, Quality);
+
+    const originalImageMeta = await sharp(originalImage).metadata();
+
+    const compressedImage = await sharp(originalImage)
+        .resize(Width, Height, {
+            fit: 'inside',
+            withoutEnlargement: true,
+        })
+        .jpeg({quality: Quality})
+        .toBuffer();
+
     const endTime2 = new Date().getTime();
     const compressImageLatencyMS = endTime2 - startTime2;
 
-    const afterByteLength = compress.byteLength;
+    const compressedByteLength = compressedImage.byteLength;
 
-    const imageUrl = await uploadImage(compress, Key);
+    const imageUrl = await uploadImage(compressedImage, Key);
 
     // get compress ratio
-    const compressRatio = afterByteLength / beforeByteLength;
+    const compressRatio = compressedByteLength / originalByteLength;
+
+    // get image resolution
+    const compressedImageMeta = await sharp(compressedImage).metadata();
 
     // make beforeByteLength afterByteLength to mb
-    const beforeMB = (beforeByteLength / 1024 / 1024).toFixed(2);
-    const afterMB = (afterByteLength / 1024 / 1024).toFixed(2);
+    const originalMB = (originalByteLength / 1024 / 1024).toFixed(2);
+    const compressedMB = (compressedByteLength / 1024 / 1024).toFixed(2);
     return {
         downloadImageLatencyMS,
         compressImageLatencyMS,
-        beforeByteLength,
+        originalByteLength,
+        compressedByteLength,
         compressRatio,
-        afterByteLength,
-        beforeMB,
-        afterMB,
+        originalMB,
+        compressedMB,
+        originalImageMeta,
+        compressedImageMeta,
         imageUrl
     };
 }
-
 
 // create getImage function
 export const getImage = async (url: string) => {
@@ -94,19 +108,6 @@ export const getImage = async (url: string) => {
     });
 
     return response.data;
-}
-
-// create compressImage function
-export const compressImage = async (data: Buffer, Width: int, Height: int, Quality: int) => {
-
-    // what's the sharp quality default value?
-    return await sharp(data)
-        .resize(Width, Height, {
-            fit: 'inside',
-            withoutEnlargement: true,
-        })
-        .jpeg({quality: Quality})
-        .toBuffer();
 }
 
 //create uploadImage function
