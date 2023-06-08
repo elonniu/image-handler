@@ -12,6 +12,7 @@ export function API({stack, app}: StackContext) {
         handler: "packages/functions/src/imageHandle.handler",
         bind: [bucket],
         runtime: "nodejs16.x",
+        memorySize: 4048,
         timeout: 50,
         currentVersionOptions: {
             provisionedConcurrentExecutions: 1,
