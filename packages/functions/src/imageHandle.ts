@@ -4,33 +4,24 @@ import {Bucket} from "sst/node/bucket";
 import {S3} from "aws-sdk";
 import {int} from "aws-sdk/clients/datapipeline";
 
-let before = '';
-let after = '';
-
 export const handler = async (event: any, context: any) => {
 
-    const {InvocationType, Url, Key, Width, Height, Records} = event;
+    const {InvocationType, Url, Key, Width, Height, Quality, Records} = event;
 
     console.log(event);
 
     if (Url || InvocationType === 'Event') {
-        const image = await compressImage(Url, Width, Height);
-        const imageUrl = await uploadImage(image, Key);
-
+        const image = await compress(Url, Key, Width, Height, Quality);
         console.log({
             event,
-            imageUrl,
-            before,
-            after
+            image,
         });
 
         return {
             statusCode: 200,
             body: JSON.stringify({
                 event,
-                imageUrl,
-                before,
-                after
+                image,
             }, null, 2),
         };
     }
@@ -39,16 +30,10 @@ export const handler = async (event: any, context: any) => {
     if (Records) {
         for (const record of Records) {
             const {body} = record;
-            const {Url, Key, Width, Height} = JSON.parse(body);
-            const image = await compressImage(Url, Width, Height);
-            const imageUrl = await uploadImage(image, Key);
+            const {Url, Key, Width, Height, Quality} = JSON.parse(body);
+            const image = await compress(Url, Key, Width, Height, Quality);
 
-            console.log({
-                event,
-                imageUrl,
-                before,
-                after
-            });
+            console.log(image);
         }
     }
 
@@ -62,27 +47,66 @@ export const handler = async (event: any, context: any) => {
 }
 
 
-// create compressImage function
-export const compressImage = async (url: string, Width: int, Height: int) => {
+export const compress = async (url: string, Key: string, Width: int, Height: int, Quality: int) => {
+
+    // record getimage latency
+    const startTime = new Date().getTime();
+    const data = await getImage(url);
+    const endTime = new Date().getTime();
+
+    const downloadImageLatencyMS = endTime - startTime;
+
+    // get response.data size in mb
+    const beforeByteLength = data.byteLength;
+    //record compress latency
+    const startTime2 = new Date().getTime();
+    const compress = await compressImage(data, Width, Height, Quality);
+    const endTime2 = new Date().getTime();
+    const compressImageLatencyMS = endTime2 - startTime2;
+
+    const afterByteLength = compress.byteLength;
+
+    const imageUrl = await uploadImage(compress, Key);
+
+    // get compress ratio
+    const compressRatio = afterByteLength / beforeByteLength;
+
+    // make beforeByteLength afterByteLength to mb
+    const beforeMB = (beforeByteLength / 1024 / 1024).toFixed(2);
+    const afterMB = (afterByteLength / 1024 / 1024).toFixed(2);
+    return {
+        downloadImageLatencyMS,
+        compressImageLatencyMS,
+        beforeByteLength,
+        compressRatio,
+        afterByteLength,
+        beforeMB,
+        afterMB,
+        imageUrl
+    };
+}
+
+
+// create getImage function
+export const getImage = async (url: string) => {
     const response = await axios.get(url, {
         responseType: 'arraybuffer'
     });
 
-    const data = response.data;
+    return response.data;
+}
 
-    // get response.data size in mb
-    before = (data.byteLength / 1024 / 1024).toFixed(2);
+// create compressImage function
+export const compressImage = async (data: Buffer, Width: int, Height: int, Quality: int) => {
 
-    const buffer = await sharp(data)
+    // what's the sharp quality default value?
+    return await sharp(data)
         .resize(Width, Height, {
             fit: 'inside',
-            withoutEnlargement: true
+            withoutEnlargement: true,
         })
+        .jpeg({quality: Quality})
         .toBuffer();
-
-    after = (buffer.byteLength / 1024 / 1024).toFixed(2);
-
-    return buffer;
 }
 
 //create uploadImage function
