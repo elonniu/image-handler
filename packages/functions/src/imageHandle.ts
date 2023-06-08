@@ -85,8 +85,9 @@ export const compress = async (url: string, Key: string, Width: int, Height: int
     const compressedImageMeta = await sharp(compressedImage).metadata();
 
     // make beforeByteLength afterByteLength to mb
-    const originalMB = (originalByteLength / 1024 / 1024).toFixed(2);
-    const compressedMB = (compressedByteLength / 1024 / 1024).toFixed(2);
+    const originalMB = (originalByteLength / 1024 / 1024).toFixed(2) + ' MB';
+    const compressedMB = (compressedByteLength / 1024 / 1024).toFixed(2) + ' MB';
+
     return {
         downloadImageLatencyMS,
         compressImageLatencyMS,
