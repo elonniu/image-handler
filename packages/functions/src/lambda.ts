@@ -64,7 +64,7 @@ export const handler = ApiHandler(async (_evt) => {
         return {event, result};
 
     } catch (e) {
-        return {event, result: {}};
+        return {event, error: e.message};
     }
 
 
