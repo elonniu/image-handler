@@ -4,6 +4,9 @@ import {Bucket} from "sst/node/bucket";
 import {S3} from "aws-sdk";
 import {int} from "aws-sdk/clients/datapipeline";
 
+let before = '';
+let after = '';
+
 export const handler = async (event: any, context: any) => {
 
     const {InvocationType, Url, Key, Width, Height, Records} = event;
@@ -17,6 +20,8 @@ export const handler = async (event: any, context: any) => {
         console.log({
             event,
             imageUrl,
+            before,
+            after
         });
 
         return {
@@ -24,6 +29,8 @@ export const handler = async (event: any, context: any) => {
             body: JSON.stringify({
                 event,
                 imageUrl,
+                before,
+                after
             }, null, 2),
         };
     }
@@ -39,6 +46,8 @@ export const handler = async (event: any, context: any) => {
             console.log({
                 event,
                 imageUrl,
+                before,
+                after
             });
         }
     }
@@ -59,12 +68,21 @@ export const compressImage = async (url: string, Width: int, Height: int) => {
         responseType: 'arraybuffer'
     });
 
-    return await sharp(response.data)
+    const data = response.data;
+
+    // get response.data size in mb
+    before = (data.byteLength / 1024 / 1024).toFixed(2);
+
+    const buffer = await sharp(data)
         .resize(Width, Height, {
             fit: 'inside',
             withoutEnlargement: true
         })
         .toBuffer();
+
+    after = (buffer.byteLength / 1024 / 1024).toFixed(2);
+
+    return buffer;
 }
 
 //create uploadImage function
