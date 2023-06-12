@@ -9,13 +9,14 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.116",
     "@types/node": "^20.2.5",
-    "axios": "^1.4.0",
-    "sharp": "^0.32.1",
     "sst": "^2.11.18",
     "vitest": "^0.32.0"
   },
   "dependencies": {
     "@image-handler/core": "workspace:^",
-    "aws-sdk": "^2.1392.0"
+    "aws-sdk": "^2.1392.0",
+    "axios": "^1.4.0",
+    "sharp": "^0.32.1",
+    "svgo": "^3.0.2"
   }
 }

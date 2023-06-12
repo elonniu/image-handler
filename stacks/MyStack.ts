@@ -11,7 +11,7 @@ export function API({stack, app}: StackContext) {
             bind: [bucket],
             runtime: "nodejs16.x",
             memorySize: 4048,
-            timeout: 50,
+            timeout: 300,
             currentVersionOptions: {
                 provisionedConcurrentExecutions: 1,
             }
