@@ -6,6 +6,10 @@ This is a demo for image processing using AWS Lambda.
 
 ## 2. How to use it?
 
+### 2.2 Requirements
+- `node -v` >= v16.16.0
+- `npm -v` >= 9.6.6
+
 ### 2.1 Install the dependencies
 
 ```bash
@@ -36,25 +40,14 @@ curl --location 'https://{your-api-url}' \
 --data '{
     "InvocationType": "RequestResponse",
     "Url": "https://{your-image-url}",
-    "Width": 300,
-    "Height": 300
+    "Width": 1000,
+    "Height": 1000,
+    "Quality": 50,
+    "Format": "jpeg"
 }'
 ```
 
-### 2.4.2 Async
-
-```bash
-curl --location 'https://{your-api-url}' \
---header 'Content-Type: application/json' \
---data '{
-    "InvocationType": "Event",
-    "Url": "https://{your-image-url}",
-    "Width": 300,
-    "Height": 300
-}'
-```
-
-### 2.4.3 Queue
+### 2.4.2 Queue
 
 ```bash
 curl --location 'https://{your-api-url}' \
@@ -62,8 +55,10 @@ curl --location 'https://{your-api-url}' \
 --data '{
     "InvocationType": "Queue",
     "Url": "https://{your-image-url}",
-    "Width": 300,
-    "Height": 300
+    "Width": 1000,
+    "Height": 1000,
+    "Quality": 50,
+    "Format": "jpeg"
 }'
 ```
 

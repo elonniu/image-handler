@@ -9,7 +9,7 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.116",
     "@types/node": "^20.2.5",
-    "sst": "2.13.1",
+    "sst": "2.18.0",
     "vitest": "^0.32.0"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "aws-sdk": "^2.1392.0",
     "axios": "^1.4.0",
     "sharp": "^0.32.1",
-    "svgo": "^3.0.2"
+    "svgo": "^3.0.2",
+    "uuid": "^9.0.0"
   }
 }
