@@ -9,7 +9,6 @@ export function API({stack, app}: StackContext) {
     const apiLambda = new Function(stack, "apiLambda", {
             handler: "packages/functions/src/lambda.handler",
             bind: [bucket],
-            runtime: "nodejs16.x",
             memorySize: 4048,
             timeout: 300,
             currentVersionOptions: {
@@ -37,7 +36,17 @@ export function API({stack, app}: StackContext) {
 
     });
 
-    apiLambda.bind([queue]);
+    // create queue by sst 2
+    const queueResult = new Queue(stack, "QueueResult", {
+        cdk: {
+            queue: {
+                visibilityTimeout: Duration.seconds(300)
+            }
+        },
+        consumer: "packages/functions/src/result.handler",
+    });
+
+    apiLambda.bind([queue, queueResult]);
 
     const api = new Api(stack, "api", {
         routes: {
@@ -47,7 +56,7 @@ export function API({stack, app}: StackContext) {
 
     stack.addOutputs({
         ApiEndpoint: api.url,
-        lambda: lambdaUrl(apiLambda, app),
-        bucket: s3Url(bucket, app)
+        lambda: lambdaUrl(apiLambda, stack),
+        bucket: s3Url(bucket, stack)
     });
 }

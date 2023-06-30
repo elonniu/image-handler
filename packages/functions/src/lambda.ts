@@ -1,57 +1,69 @@
 import {S3, SQS} from "aws-sdk";
 import {Queue} from "sst/node/queue";
 import {jsonParseRecursive} from "sst-helper";
-import {int} from "aws-sdk/clients/datapipeline";
 import sharp from "sharp";
 import axios from "axios";
 import {optimize} from "svgo";
 import {Bucket} from "sst/node/bucket";
 import {ResponseType} from "axios/index";
+import {v4 as uuidv4} from "uuid";
 
+const sqs = new SQS();
 const http = axios.create({
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
 });
 
+export interface Img {
+    Url: string,
+    Key: string,
+    Width: number,
+    Height: number,
+    Quality: number,
+    Format: string
+}
+
+function parseImg(body: string): Img {
+    const {Url, Key, Width, Height, Quality, Format} = JSON.parse(body);
+    return {Url, Key, Width, Height, Quality, Format};
+}
+
 export const handler = async (event: any, context: any) => {
 
-    console.log(event);
-
+    // From APIGW
     if (event.body) {
         return await apiHandler(event, context);
     }
 
-    const {Url, Key, Width, Height, Quality, Format, Records} = event;
-
-    try {
-        // From Event
-        if (Url) {
-            const image = await compress(Url, Key, Width, Height, Quality, Format);
-            console.log(image);
-
-            return {};
-        }
-
-        // From SQS
-        if (Records) {
-            for (const record of Records) {
-                const {body} = record;
-                const {Url, Key, Width, Height, Quality} = JSON.parse(body);
-                const image = await compress(Url, Key, Width, Height, Quality, Format);
-                console.log(image);
-            }
-        }
-    } catch (e) {
-        return {
-            statusCode: 400,
-            contentType: "application/json",
-            body: JSON.stringify({
-                error: e.message,
-            }, null, 2),
-        };
+    // From Event
+    if (event.Url) {
+        return await eventHandler(event, context);
     }
 
-    return {};
+    // From SQS
+    if (event.Records) {
+        return await sqsHandler(event, context);
+    }
+}
+
+export const eventHandler = async (event: any, context: any) => {
+    const {Url, Key, Width, Height, Quality, Format} = event;
+    const image = await compress({Url, Key, Width, Height, Quality, Format});
+
+    return {image};
+}
+
+export const sqsHandler = async (event: any, context: any) => {
+    const {Records} = event;
+
+    for (const record of Records) {
+        const {body} = record;
+        if (!body) {
+            continue;
+        }
+        const img = parseImg(body);
+        await compress(img);
+    }
 }
 
 export const apiHandler = async (_evt: any, context: any) => {
@@ -89,18 +101,11 @@ export const apiHandler = async (_evt: any, context: any) => {
 
     try {
         if (InvocationType === "Queue") {
-            // put record into sqs queue
-            const sqs = new SQS();
-            // send message batch
             const result = await sqs.sendMessageBatch({
                 QueueUrl: Queue.Queue.queueUrl,
                 Entries: [
                     {
-                        Id: "1",
-                        MessageBody: JSON.stringify(event),
-                    },
-                    {
-                        Id: "2",
+                        Id: uuidv4().toString(),
                         MessageBody: JSON.stringify(event),
                     },
                 ]
@@ -110,7 +115,7 @@ export const apiHandler = async (_evt: any, context: any) => {
         }
 
         // use aws sdk invoke lambda function synchronously
-        const result = await compress(Url, Key, Width, Height, Quality, Format);
+        const result = await compress({Url, Key, Width, Height, Quality, Format});
 
         jsonParseRecursive(result);
         jsonParseRecursive(result);
@@ -130,23 +135,36 @@ export const apiHandler = async (_evt: any, context: any) => {
 
 }
 
-export const compress = async (url: string, Key: string, Width: int, Height: int, Quality: int, Format: string) => {
+export const compress = async (img: Img) => {
 
-    if (Format.toLowerCase() === 'svg') {
-        return await compressSvg(url, Key, Width, Height, Quality, Format);
+    let result;
+    switch (img.Format.toLowerCase()) {
+        case 'svg':
+            result = await compressSvg(img);
+            break;
+        case 'gif':
+            result = await compressGif(img);
+            break;
+        default:
+            result = await compressImg(img);
     }
 
-    if (Format.toLowerCase() === 'gif') {
-        return await compressGif(url, Key, Width, Height, Quality, Format);
-    }
+    result.Bucket = Bucket.Bucket.bucketName;
+    result.Key = img.Key;
 
-    return await compressImg(url, Key, Width, Height, Quality, Format);
+    await sqs.sendMessage({
+        QueueUrl: Queue.QueueResult.queueUrl,
+        MessageBody: JSON.stringify({img, result}),
+    }).promise();
+
+    return result;
 }
-export const compressSvg = async (url: string, Key: string, Width: int, Height: int, Quality: int, Format: string) => {
+export const compressSvg = async (img: Img) => {
+    const {Url, Key, Width, Height, Quality, Format} = img;
 
     // record getimage latency
     const startTime = new Date().getTime();
-    const originalImage = await getImage(url, 'text');
+    const originalImage = await getImage(Url, 'text');
     const endTime = new Date().getTime();
 
     const downloadImageLatencyMS = endTime - startTime;
@@ -185,11 +203,12 @@ export const compressSvg = async (url: string, Key: string, Width: int, Height: 
     };
 }
 
-export const compressImg = async (url: string, Key: string, Width: int, Height: int, Quality: int, Format: string) => {
+export const compressImg = async (img: Img) => {
+    const {Url, Key, Width, Height, Quality, Format} = img;
 
     // record getimage latency
     const startTime = new Date().getTime();
-    const originalImage = await getImage(url);
+    const originalImage = await getImage(Url);
     const endTime = new Date().getTime();
 
     const downloadImageLatencyMS = endTime - startTime;
@@ -239,11 +258,12 @@ export const compressImg = async (url: string, Key: string, Width: int, Height: 
         imageUrl
     };
 }
-export const compressGif = async (url: string, Key: string, Width: int, Height: int, Quality: int, Format: string) => {
 
+export const compressGif = async (img: Img) => {
+    const {Url, Key, Width, Height, Quality, Format} = img;
     // record getimage latency
     const startTime = new Date().getTime();
-    const originalImage = await getImage(url);
+    const originalImage = await getImage(Url);
     const endTime = new Date().getTime();
     const downloadImageLatencyMS = endTime - startTime;
     const originalImageMeta = await sharp(originalImage).metadata();
@@ -287,8 +307,9 @@ export const compressGif = async (url: string, Key: string, Width: int, Height: 
 }
 
 // create getImage function
-export const getImage = async (url: string, responseType: ResponseType = 'arraybuffer') => {
-    const response = await http.get(url, {
+export const getImage = async (Url: string, responseType: ResponseType = 'arraybuffer') => {
+
+    const response = await http.get(Url, {
         responseType
     });
 
