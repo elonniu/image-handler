@@ -2,7 +2,7 @@
 
 ## 1. What is this?
 
-This is a demo for image processing using AWS Lambda.
+This is a demo for image processing on AWS Lambda.
 
 ## 2. How to use it?
 
